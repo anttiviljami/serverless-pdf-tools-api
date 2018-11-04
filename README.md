@@ -3,3 +3,10 @@
 
 Serverless API for building and processing PDF files. Built on AWS Lambda
 
+## Development
+
+```
+npm install
+npm run dev
+```
+

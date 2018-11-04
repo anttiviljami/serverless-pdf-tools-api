@@ -2,23 +2,43 @@
   "name": "serverless-pdf-tools-api",
   "version": "0.0.1",
   "description": "Serverless API for building and processing PDF files. Built on AWS Lambda",
-  "main": "dist/handler.js",
-  "scripts": {
-    "test": "jest"
-  },
+  "author": "Viljami Kuosmanen <viljami@avoinsorsa.fi>",
+  "license": "MIT",
+  "homepage": "https://github.com/anttiviljami/serverless-pdf-tools-api#readme",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/anttiviljami/serverless-pdf-tools-api.git"
+  },
+  "bugs": {
+    "url": "https://github.com/anttiviljami/serverless-pdf-tools-api/issues"
   },
   "keywords": [
     "serverless",
     "pdf",
     "api"
   ],
-  "author": "Viljami Kuosmanen <viljami@avoinsorsa.fi>",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/anttiviljami/serverless-pdf-tools-api/issues"
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.15",
+    "@types/node": "^10.12.2",
+    "concurrently": "^4.0.1",
+    "nodemon": "^1.18.5",
+    "prettier": "^1.14.3",
+    "serverless": "^1.32.0",
+    "serverless-offline": "^3.31.0",
+    "tslint": "^5.11.0",
+    "tslint-microsoft-contrib": "^5.2.1",
+    "typescript": "^3.1.6"
   },
-  "homepage": "https://github.com/anttiviljami/serverless-pdf-tools-api#readme"
+  "dependencies": {
+    "openapi-backend": "^1.1.4"
+  },
+  "scripts": {
+    "build": "tsc",
+    "watch-build": "tsc -w",
+    "start": "serverless offline start --stage local",
+    "watch-start": "nodemon --delay 2 -w serverless.yml -w dist/ -x 'npm run start'",
+    "dev": "concurrently -k -p '[{name}]' -n 'typescript,api' -c 'yellow.bold,cyan.bold' npm:watch-build npm:watch-start",
+    "lint": "tslint --format prose --project .",
+    "test": "NODE_ENV=test jest"
+  }
 }

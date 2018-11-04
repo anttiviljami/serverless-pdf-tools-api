@@ -1,0 +1,25 @@
+service: openapi-backend-serverless-aws
+
+provider:
+  name: aws
+  runtime: nodejs8.10
+  region: eu-west-1
+  stage: dev
+
+functions:
+  api:
+    handler: dist/index.handler
+    events:
+      - http:
+          path: /
+          method: ANY
+      - http:
+          path: /{path+}
+          method: ANY
+
+plugins:
+  - serverless-offline
+
+custom:
+  serverless-offline:
+    port: 9000

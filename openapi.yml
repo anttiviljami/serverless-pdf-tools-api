@@ -1,0 +1,51 @@
+openapi: 3.0.1
+info:
+  title: Serverless PDF Tools API
+  description: Serverless API for building and processing PDF files. Built on AWS Lambda
+  version: 0.0.1
+tags:
+  - name: pdf
+    description: PDF operations
+paths:
+  /pdf:
+    post:
+      operationId: composePdf
+      summary: Compose a PDF file from payload instructions
+      description: |
+        Composes a PDF file from payload instructions, saves it to S3 and returns the created S3 object.
+      tags:
+        - pdf
+      responses:
+        201:
+          $ref: '#/components/responses/S3Created'
+      requestBody:
+        $ref: '#/components/requestBodies/ComposePdfPayload'
+components:
+  requestBodies:
+    ComposePdfPayload:
+      description: 'Request payload for composing a PDF'
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: false
+            properties:
+              layers:
+                type: array
+                items:
+                  type: string
+                  example: ''
+            required:
+              - layers
+  responses:
+    S3Created:
+      description: 'Reference to S3 object'
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: false
+            properties:
+              url:
+                type: string
+                example: ''
