@@ -1,0 +1,24 @@
+{
+  "name": "serverless-pdf-tools-api",
+  "version": "0.0.1",
+  "description": "Serverless API for building and processing PDF files. Built on AWS Lambda",
+  "main": "dist/handler.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/anttiviljami/serverless-pdf-tools-api.git"
+  },
+  "keywords": [
+    "serverless",
+    "pdf",
+    "api"
+  ],
+  "author": "Viljami Kuosmanen <viljami@avoinsorsa.fi>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/anttiviljami/serverless-pdf-tools-api/issues"
+  },
+  "homepage": "https://github.com/anttiviljami/serverless-pdf-tools-api#readme"
+}
