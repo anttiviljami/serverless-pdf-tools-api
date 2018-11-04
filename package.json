@@ -34,7 +34,8 @@
     "typescript": "^3.1.6"
   },
   "dependencies": {
-    "openapi-backend": "^1.1.4"
+    "openapi-backend": "^1.1.4",
+    "source-map-support": "^0.5.9"
   },
   "scripts": {
     "build": "tsc",
@@ -46,6 +47,11 @@
     "dev": "concurrently -k -p '[{name}]' -n 'api,openapi,api,openapi' -c 'yellow.bold,cyan.bold,green.bold,cyan.bold' npm:watch-build npm:swaggerui:watch-build npm:serverless-offline:watch npm:swaggerui:start",
     "lint": "tslint --format prose --project .",
     "test": "NODE_ENV=test jest",
+    "pre-deploy": "npm run lint && npm run build",
+    "deploy-api:dev": "serverless deploy function --function api --stage dev",
+    "deploy-api": "npm run deploy-api:dev",
+    "deploy:dev": "serverless deploy --stage dev",
+    "deploy": "npm run deploy:dev",
     "swaggerui": "npm run swaggerui:start",
     "swaggerui:build": "node scripts/build-swaggerui.js",
     "swaggerui:watch-build": "nodemon --delay 2 -w scripts/build-swaggerui.js  -w openapi.yml -x 'npm run swaggerui:build'",

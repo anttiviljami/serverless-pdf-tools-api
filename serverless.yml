@@ -18,9 +18,13 @@ functions:
       - http:
           path: /
           method: ANY
+          cors: true
+          timeout: 60
       - http:
           path: /{path+}
           method: ANY
+          cors: true
+          timeout: 60
 
 plugins:
   - serverless-offline
@@ -44,6 +48,13 @@ custom:
             ".execute-api.${self:provider.region}.amazonaws.com/${self:provider.stage}"
           ]
         ]
+
+package:
+  exclude:
+    - './**' # exclude everything but dist and deps
+    - '!node_modules/**' # can't use include or otherwise dev deps will be bundled
+    - '!dist/**'
+    - '!openapi.yml'
 
 resources:
   Resources:
