@@ -18,13 +18,13 @@ paths:
       tags:
         - pdf
       responses:
-        201:
+        200:
           $ref: '#/components/responses/S3Created'
       requestBody:
         $ref: '#/components/requestBodies/ComposePdfPayload'
 components:
   securitySchemes:
-    ApiKey: 
+    ApiKey:
       type: 'apiKey'
       name: 'x-api-key'
       in: 'header'
@@ -51,8 +51,10 @@ components:
         application/json:
           schema:
             type: object
-            additionalProperties: false
             properties:
-              url:
-                type: string
-                example: ''
+              result:
+                type: object
+                properties:
+                  url:
+                    type: string
+                    format: uri

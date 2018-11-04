@@ -12,23 +12,24 @@ const headers = {
 // define api + handlers
 const api = new OpenAPIBackend({
   definition: path.join(__dirname, '..', 'openapi.yml'),
-  handlers: {
-    notImplemented: async (event: APIGatewayProxyEvent, context: Context) => ({
-      statusCode: 501,
-      body: JSON.stringify({ err: 'not implemented' }),
-      headers,
-    }),
-    notFound: async (event: APIGatewayProxyEvent, context: Context) => ({
-      statusCode: 404,
-      body: JSON.stringify({ err: 'not found' }),
-      headers,
-    }),
-    validationFail: async (err, event: APIGatewayProxyEvent, context: Context) => ({
-      statusCode: 400,
-      body: JSON.stringify({ err }),
-      headers,
-    }),
-  },
+});
+
+api.register({
+  notImplemented: async (c, event: APIGatewayProxyEvent, context: Context) => ({
+    statusCode: 200,
+    body: JSON.stringify(api.mockResponseForOperation(c.operation.operationId)),
+    headers,
+  }),
+  notFound: async (c, event: APIGatewayProxyEvent, context: Context) => ({
+    statusCode: 404,
+    body: JSON.stringify({ err: 'not found' }),
+    headers,
+  }),
+  validationFail: async (c, event: APIGatewayProxyEvent, context: Context) => ({
+    statusCode: 400,
+    body: JSON.stringify({ err: c.validation.errors }),
+    headers,
+  }),
 });
 
 api.init();
