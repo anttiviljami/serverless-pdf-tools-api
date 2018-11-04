@@ -6,6 +6,8 @@ info:
 tags:
   - name: pdf
     description: PDF operations
+security:
+  - ApiKey: []
 paths:
   /pdf:
     post:
@@ -21,6 +23,11 @@ paths:
       requestBody:
         $ref: '#/components/requestBodies/ComposePdfPayload'
 components:
+  securitySchemes:
+    ApiKey: 
+      type: 'apiKey'
+      name: 'x-api-key'
+      in: 'header'
   requestBodies:
     ComposePdfPayload:
       description: 'Request payload for composing a PDF'

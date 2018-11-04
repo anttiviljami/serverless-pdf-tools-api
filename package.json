@@ -21,10 +21,14 @@
     "@types/aws-lambda": "^8.10.15",
     "@types/node": "^10.12.2",
     "concurrently": "^4.0.1",
+    "http-server": "^0.11.1",
+    "mime": "^2.3.1",
     "nodemon": "^1.18.5",
     "prettier": "^1.14.3",
     "serverless": "^1.32.0",
     "serverless-offline": "^3.31.0",
+    "serverless-stack-output": "^0.2.3",
+    "swagger-ui-dist": "^3.19.4",
     "tslint": "^5.11.0",
     "tslint-microsoft-contrib": "^5.2.1",
     "typescript": "^3.1.6"
@@ -35,10 +39,16 @@
   "scripts": {
     "build": "tsc",
     "watch-build": "tsc -w",
-    "start": "serverless offline start --stage local",
+    "start": "npm run serverless-offline",
     "watch-start": "nodemon --delay 2 -w serverless.yml -w dist/ -x 'npm run start'",
-    "dev": "concurrently -k -p '[{name}]' -n 'typescript,api' -c 'yellow.bold,cyan.bold' npm:watch-build npm:watch-start",
+    "serverless-offline": "serverless offline start --stage local",
+    "serverless-offline:watch": "nodemon --delay 2 -w serverless.yml -w dist/ -x 'npm run serverless-offline'",
+    "dev": "concurrently -k -p '[{name}]' -n 'api,openapi,api,openapi' -c 'yellow.bold,cyan.bold,green.bold,cyan.bold' npm:watch-build npm:swaggerui:watch-build npm:serverless-offline:watch npm:swaggerui:start",
     "lint": "tslint --format prose --project .",
-    "test": "NODE_ENV=test jest"
+    "test": "NODE_ENV=test jest",
+    "swaggerui": "npm run swaggerui:start",
+    "swaggerui:build": "node scripts/build-swaggerui.js",
+    "swaggerui:watch-build": "nodemon --delay 2 -w scripts/build-swaggerui.js  -w openapi.yml -x 'npm run swaggerui:build'",
+    "swaggerui:start": "http-server static/ -p ${SWAGGERUI_PORT:-9001} --silent"
   }
 }

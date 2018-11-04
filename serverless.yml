@@ -1,10 +1,15 @@
-service: openapi-backend-serverless-aws
+service: ${env:PROJECT_NAME}
 
 provider:
   name: aws
   runtime: nodejs8.10
   region: eu-west-1
   stage: dev
+  environment:
+    BASEURL: ${self:custom.env.${self:provider.stage}.BASEURL}
+    BUCKET_NAME: ${self:service}-${self:provider.stage}
+  apiKeys:
+    - ${self:service}-${self:provider.stage}-key
 
 functions:
   api:
@@ -19,7 +24,70 @@ functions:
 
 plugins:
   - serverless-offline
+  - serverless-stack-output
 
 custom:
   serverless-offline:
-    port: 9000
+    port: ${env:PORT}
+    apiKey: ${env:API_KEY}
+  output:
+    handler: scripts/build-swaggerui.handler
+  env:
+    local:
+      BASEURL: http://localhost:${env:PORT}
+    dev:
+      BASEURL:
+        Fn::Join: [
+          "", [
+            "https://",
+            { "Ref" : "ApiGatewayRestApi" },
+            ".execute-api.${self:provider.region}.amazonaws.com/${self:provider.stage}"
+          ]
+        ]
+
+resources:
+  Resources:
+    APIBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        AccessControl: PublicRead
+        BucketName: ${self:provider.environment.BUCKET_NAME}
+        WebsiteConfiguration:
+          IndexDocument: index.html
+        CorsConfiguration:
+          CorsRules:
+            - AllowedOrigins:
+                - '*'
+              AllowedHeaders:
+                - '*'
+              AllowedMethods:
+                - GET
+                - HEAD
+              MaxAge: 3000
+    ApiBucketPolicy:
+      Type: AWS::S3::BucketPolicy
+      Properties:
+        Bucket:
+          Ref: APIBucket
+        PolicyDocument:
+          Statement:
+            - Sid: PublicReadGetObject
+              Effect: Allow
+              Principal: "*"
+              Action:
+              - s3:GetObject
+              Resource:
+                Fn::Join: [
+                  "", [
+                    "arn:aws:s3:::",
+                    {
+                      "Ref": "APIBucket"
+                    },
+                    "/*"
+                  ]
+                ]
+  Outputs:
+    APIBucketName:
+      Value:
+        Ref: APIBucket
+
