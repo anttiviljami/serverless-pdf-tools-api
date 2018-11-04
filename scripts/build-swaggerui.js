@@ -83,6 +83,9 @@ async function handler(data) {
     }
     // clean up directory after upload
     fs.rmdirSync(outputPath);
+
+    const { LocationConstraint: region } = await s3.getBucketLocation({ Bucket: APIBucketName }).promise();
+    console.info(`[info] Swagger UI: http://${APIBucketName}.s3-website-${region}.amazonaws.com/`);
   } else {
     console.info('[info] No S3 bucket supplied. Skipping static file upload.');
   }

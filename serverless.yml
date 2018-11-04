@@ -7,9 +7,14 @@ provider:
   stage: dev
   environment:
     BASEURL: ${self:custom.env.${self:provider.stage}.BASEURL}
-    BUCKET_NAME: ${self:service}-${self:provider.stage}
+    BUCKET_NAME: ${self:custom.env.${self:provider.stage}.BUCKET_NAME}
   apiKeys:
     - ${self:service}-${self:provider.stage}-key
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - s3:*
+      Resource: arn:aws:s3:::${self:custom.env.${self:provider.stage}.BUCKET_NAME}/*
 
 functions:
   api:
@@ -38,8 +43,10 @@ custom:
     handler: scripts/build-swaggerui.handler
   env:
     local:
+      BUCKET_NAME: ${self:service}-dev
       BASEURL: http://localhost:${env:PORT}
     dev:
+      BUCKET_NAME: ${self:service}-${self:provider.stage}
       BASEURL:
         Fn::Join: [
           "", [
