@@ -5,7 +5,7 @@ import { ComposePDFRecipe, PDFBuilder, BuilderOutputMode } from '../core/pdf-cor
 
 export async function composePdfHttpHandler(c: Context, event: Lambda.APIGatewayProxyEvent, context: Lambda.Context) {
   const { headers, requestBody } = c.request;
-  const recipe: ComposePDFRecipe = requestBody;
+  const recipe: ComposePDFRecipe = requestBody.recipe;
 
   if (headers['accept'] === 'application/pdf') {
     // return raw buffer as base64

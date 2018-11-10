@@ -19,6 +19,8 @@ provider:
 functions:
   pdf:
     handler: dist/pdf.handler
+  html:
+    handler: dist/html.handler
   api:
     handler: dist/api.handler
     events:
@@ -44,8 +46,6 @@ custom:
     port: ${env:PORT}
     apiKey: ${env:API_KEY}
     dontPrintOutput: true
-  apigwBinary:
-    types: []
   output:
     handler: scripts/build-swaggerui.handler
   env:
@@ -66,9 +66,10 @@ custom:
 package:
   exclude:
     - './**' # exclude everything but dist and deps
-    - '!node_modules/**' # can't use include or otherwise dev deps will be bundled
-    - '!dist/**'
-    - '!openapi.yml'
+    - '!./node_modules/**' # can't use include or otherwise dev deps will be bundled
+    - '!./dist/**'
+    - '!./bin/**'
+    - '!./openapi.yml'
 
 resources:
   Resources:

@@ -178,6 +178,6 @@ export class PDFBuilder {
 }
 
 function getFilePathForFontFamily(family: string) {
-  const fontFilePath = path.join('/tmp', `${family}.ttf`);
+  const fontFilePath = path.join(path.sep, 'tmp', `${family}.ttf`);
   return fontFilePath;
 }

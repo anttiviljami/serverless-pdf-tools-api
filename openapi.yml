@@ -11,17 +11,30 @@ security:
 paths:
   /pdf:
     post:
-      operationId: composePdf
-      summary: Compose a PDF file from payload instructions
+      operationId: composePDF
+      summary: Compose a PDF file
       description: |
-        Composes a PDF file from payload instructions, saves it to S3 and returns the created S3 object.
+        Composes a PDF file from recipe and serves it in desired formats
       tags:
         - pdf
       requestBody:
         $ref: '#/components/requestBodies/ComposePdfPayload'
       responses:
         200:
-          $ref: '#/components/responses/S3ReferenceOrPdf'
+          description: ok
+  /html:
+    post:
+      operationId: composeHTML
+      summary: Compose a HTML page
+      description: |
+        Composes a PDF file from recipe and serves it in desired formats
+      tags:
+        - pdf
+      requestBody:
+        $ref: '#/components/requestBodies/ComposeHtmlPayload'
+      responses:
+        200:
+          description: ok
 components:
   securitySchemes:
     ApiKey:
@@ -29,101 +42,98 @@ components:
       name: 'x-api-key'
       in: 'header'
   requestBodies:
-    ComposePdfPayload:
-      description: 'Request payload for composing a PDF'
+    ComposeHtmlPayload:
+      description: 'Request payload for composing content from HTML source'
       content:
         application/json:
           schema:
             type: object
             additionalProperties: false
-            properties:
-              layers:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    url:
-                      type: string
-                      format: uri
-                      example: 'https://s3-eu-west-1.amazonaws.com/serverless-pdf-tools-api-dev/examples/KM_parhaat_pohja.pdf'
-                  required:
-                    - url
-              fonts:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    family:
-                      type: string
-                      example: arial
-                    url:
-                      type: string
-                      format: uri
-                      example: https://s3-eu-west-1.amazonaws.com/serverless-pdf-tools-api-dev/fonts/arial.ttf
-                  required: 
-                   - family
-                   - url
-              fields:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    page:
-                      anyOf:
-                        - type: integer
-                        - type: string
-                      example: 1
-                    x:
-                      type: number
-                    y: 
-                      type: number
-                    text:
-                      type: string
-                    font:
-                      type: string
-                      example: arial
-                    size:
-                      type: number
-                      example: 12
-                    color:
-                      type: string
-                      example: 0,0,0,0
-                    lineHeight:
-                      type: number
-                      example: 1
-                    align: 
-                      type: string
-                      enum:
-                        - left
-                        - center
-                        - right
-                    rotation:
-                      type: number
-                  required:
-                    - page
-                    - x
-                    - y
-                    - text
-                    - font
-                    - size
-                    - color
+            properties: 
+              html:
+                type: string
             required:
-              - layers
-  responses:
-    S3ReferenceOrPdf:
-      description: 'Reference to S3 object or the PDF file'
+              - html
+    ComposePdfPayload:
+      description: 'Request payload for composing content from a PDF recipe'
       content:
         application/json:
           schema:
             type: object
-            properties:
-              result:
+            additionalProperties: false
+            properties: 
+              recipe:
                 type: object
                 properties:
-                  url:
-                    type: string
-                    format: uri
-        application/pdf:
-          schema:
-            type: string
-            format: binary
+                  layers:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        url:
+                          type: string
+                          format: uri
+                          example: 'https://s3-eu-west-1.amazonaws.com/serverless-pdf-tools-api-dev/examples/KM_parhaat_pohja.pdf'
+                      required:
+                        - url
+                  fonts:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        family:
+                          type: string
+                          example: arial
+                        url:
+                          type: string
+                          format: uri
+                          example: https://s3-eu-west-1.amazonaws.com/serverless-pdf-tools-api-dev/fonts/arial.ttf
+                      required: 
+                      - family
+                      - url
+                  fields:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        page:
+                          anyOf:
+                            - type: integer
+                            - type: string
+                          example: 1
+                        x:
+                          type: number
+                        y: 
+                          type: number
+                        text:
+                          type: string
+                        font:
+                          type: string
+                          example: arial
+                        size:
+                          type: number
+                          example: 12
+                        color:
+                          type: string
+                          example: 0,0,0,0
+                        lineHeight:
+                          type: number
+                          example: 1
+                        align: 
+                          type: string
+                          enum:
+                            - left
+                            - center
+                            - right
+                        rotation:
+                          type: number
+                      required:
+                        - page
+                        - x
+                        - y
+                        - text
+                        - font
+                        - size
+                        - color
+                required:
+                  - layers
