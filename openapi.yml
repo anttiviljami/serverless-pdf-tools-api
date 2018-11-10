@@ -131,7 +131,9 @@ components:
                           anyOf:
                             - type: integer
                             - type: string
-                          example: 1
+                              enum:
+                                - all
+                          example: 0
                         x:
                           type: number
                         y: 
@@ -146,7 +148,7 @@ components:
                           example: 12
                         color:
                           type: string
-                          example: 0,0,0,0
+                          example: 0,0,0,100
                         lineHeight:
                           type: number
                           example: 1
@@ -175,6 +177,11 @@ components:
                     type: string
                     enum:
                       - pdf
+                      - cover
+                      - montage
+                  opts:
+                    type: object
+                    additionalProperties: true
                 required:
                   - type
   schemas: 

@@ -5,10 +5,10 @@ import fs from 'fs';
 
 import * as hummus from 'hummus';
 
-import * as perf from '../util/perf';
 import { fetchBuffer } from '../util/fetch-util';
 import { HummusReadStream, HummusWriteStream } from '../util/hummus-util';
 import { cmykStringToHex } from '../util/cmyk-util';
+import * as perf from '../util/perf';
 
 import { Readable } from 'stream';
 
@@ -59,19 +59,23 @@ export class PDFBuilder {
   public outputStream: Readable;
   public outputData: Buffer[];
 
+  private writeStream: HummusWriteStream;
+
   constructor(opts: PDFBuilderOpts = {}) {
     this.mode = opts.output || BuilderOutputMode.Buffer;
+
+    // initalize a write stream for hummus
+    this.writeStream = new HummusWriteStream();
+    this.outputStream = this.writeStream.output;
   }
 
   public async composePDF(recipe: ComposePDFRecipe): Promise<void | Buffer> {
     const timer = `composePdf-${new Date().getTime()}`;
-    perf.time(timer); // start timer
     const { fonts, layers, fields } = recipe;
+    perf.time(timer, `Started composing pdf from recipe and ${layers.length} layers`); // start timer
 
     // start up a pdf writer to a write stream
-    const writeStream = new HummusWriteStream();
-    this.outputStream = writeStream.output;
-    const writer = hummus.createWriter(writeStream);
+    const writer = hummus.createWriter(this.writeStream);
 
     if (this.mode === BuilderOutputMode.Buffer) {
       // capture the output stream data to a buffer
@@ -134,7 +138,7 @@ export class PDFBuilder {
       const ctx = writer.startPageContentContext(page);
 
       // write fields for page
-      const pageFields = _.filter(fields || [], (field) => Number(field.page) === pagenum + 1 || field.page === 'all');
+      const pageFields = _.filter(fields || [], (field) => Number(field.page) === pagenum || field.page === 'all');
       perf.timeLog(timer, `Writing ${pageFields.length} text fields on page ${pagenum}...`);
       pageFields.forEach((field) => {
         // rotation
@@ -159,7 +163,7 @@ export class PDFBuilder {
 
     // terminate output
     writer.end();
-    writeStream.end();
+    this.writeStream.end();
     perf.timeEnd(timer, `Finished writing pdf`); // finish timer
 
     // return a buffer from this function if output type is specified as buffer

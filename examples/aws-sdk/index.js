@@ -27,7 +27,7 @@ const recipe = {
   ],
   fields: [
     {
-      page: 1,
+      page: 0,
       x: 266,
       y: 655,
       text: 'string',
@@ -56,30 +56,47 @@ app.get('/pdf', async (req, res) => {
         FunctionName: process.env.FUNCTION_NAME_PDF,
         Payload: JSON.stringify({ recipe, output: { type: 'pdf' } }),
       })
-      .createReadStream();
+      .createReadStream()
+      .pipe(stripFirstAndLastByte())
+      .pipe(new Base64Decode())
+      .pipe(res);
+    return res.status(200).type('application/pdf');
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ err });
+  }
+});
 
-    if (data) {
-      data
-        .pipe(stripFirstAndLastByte())
-        .pipe(new Base64Decode())
-        .pipe(res);
-      return res.status(200).type('application/pdf');
-    }
-
-    /*const result = await lambda
+app.get('/pdf/montage', async (req, res) => {
+  try {
+    const data = lambda
       .invoke({
-        FunctionName: 'serverless-pdf-tools-api-dev-pdf',
-        Payload: JSON.stringify(recipe),
+        FunctionName: process.env.FUNCTION_NAME_PDF,
+        Payload: JSON.stringify({ recipe, output: { type: 'montage', opts: { montagePages: [0, 1] } } }),
       })
-      .promise();
+      .createReadStream()
+      .pipe(stripFirstAndLastByte())
+      .pipe(new Base64Decode())
+      .pipe(res);
+    return res.status(200).type('image/png');
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ err });
+  }
+});
 
-    const data = JSON.parse(result.Payload);
-    return res
-      .status(200)
-      .type('application/pdf')
-      .send(Buffer.from(data, 'base64'));*/
-
-    return res.status(500).json({ err: 'Unkonwn error' });
+app.get('/pdf/cover', async (req, res) => {
+  try {
+    const data = lambda
+      .invoke({
+        FunctionName: process.env.FUNCTION_NAME_PDF,
+        Payload: JSON.stringify({ recipe, output: { type: 'cover' } }),
+      })
+      .createReadStream()
+      .pipe(stripFirstAndLastByte())
+      .pipe(new Base64Decode())
+      .pipe(res);
+    return res.status(200).type('image/png');
   } catch (err) {
     console.error(err);
     return res.status(500).json({ err });
@@ -93,16 +110,11 @@ app.get('/html/screenshot', async (req, res) => {
         FunctionName: process.env.FUNCTION_NAME_HTML,
         Payload: JSON.stringify({ html, output: { type: 'screenshot' } }),
       })
-      .createReadStream();
-
-    if (data) {
-      data
-        .pipe(stripFirstAndLastByte())
-        .pipe(new Base64Decode())
-        .pipe(res);
-      return res.status(200).type('image/png');
-    }
-    return res.status(500).json({ err: 'Unkonwn error' });
+      .createReadStream()
+      .pipe(stripFirstAndLastByte())
+      .pipe(new Base64Decode())
+      .pipe(res);
+    return res.status(200).type('image/png');
   } catch (err) {
     console.error(err);
     return res.status(500).json({ err });
@@ -116,16 +128,10 @@ app.get('/html/pdf', async (req, res) => {
         FunctionName: process.env.FUNCTION_NAME_HTML,
         Payload: JSON.stringify({ html, output: { type: 'pdf' } }),
       })
-      .createReadStream();
-
-    if (data) {
-      data
-        .pipe(stripFirstAndLastByte())
-        .pipe(new Base64Decode())
-        .pipe(res);
-      return res.status(200).type('application/pdf');
-    }
-    return res.status(500).json({ err: 'Unkonwn error' });
+      .createReadStream()
+      .pipe(stripFirstAndLastByte())
+      .pipe(new Base64Decode())
+      .pipe(res);
   } catch (err) {
     console.error(err);
     return res.status(500).json({ err });

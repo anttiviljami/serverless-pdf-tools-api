@@ -24,15 +24,18 @@
     "@types/bluebird": "^3.5.24",
     "bluebird": "^3.5.3",
     "diff-hrtime": "^0.1.0",
+    "duplexify": "^3.6.1",
     "hummus": "^1.0.90",
     "node-fetch": "^2.2.1",
     "openapi-backend": "^1.3.5",
     "puppeteer": "^1.10.0",
     "source-map-support": "^0.5.9",
+    "stream-accumulator": "0.0.2",
     "tar": "^4.4.8"
   },
   "devDependencies": {
     "@types/aws-lambda": "^8.10.15",
+    "@types/duplexify": "^3.6.0",
     "@types/node": "^10.12.5",
     "@types/node-fetch": "^2.1.2",
     "@types/puppeteer": "^1.10.0",

@@ -5,8 +5,9 @@ interface Timer {
 }
 const timers: { [label: string]: Timer } = {};
 
-export function time(label: string) {
+export function time(label: string, ...message: any[]) {
   timers[label] = { start: process.hrtime() };
+  console.log(`[${label}]: 0ms`, ...message);
   return timers[label];
 }
 
