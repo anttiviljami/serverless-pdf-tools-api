@@ -1,13 +1,48 @@
 import _ from 'lodash';
 import BPromise from 'bluebird';
+import path from 'path';
+import fs from 'fs';
+
 import * as hummus from 'hummus';
 
+import * as perf from '../util/perf';
 import { fetchBuffer } from '../util/fetch-util';
 import { HummusReadStream, HummusWriteStream } from '../util/hummus-util';
+import { cmykStringToHex } from '../util/cmyk-util';
+
 import { Readable } from 'stream';
 
+interface URLReference {
+  url: string;
+}
+
+interface FontReference extends URLReference {
+  family: string;
+}
+
+enum TextAlign {
+  Left = 'left',
+  Center = 'center',
+  Right = 'right',
+}
+
+interface Field {
+  page: string | number;
+  x: number;
+  y: number;
+  text: string;
+  font: string;
+  size: number;
+  color: string;
+  lineHeight?: number;
+  align?: TextAlign;
+  rotation?: number;
+}
+
 export interface ComposePDFRecipe {
-  layers: string[];
+  layers: URLReference[];
+  fonts?: FontReference[];
+  fields?: Field[];
 }
 
 export enum BuilderOutputMode {
@@ -30,8 +65,8 @@ export class PDFBuilder {
 
   public async composePDF(recipe: ComposePDFRecipe): Promise<void | Buffer> {
     const timer = `composePdf-${new Date().getTime()}`;
-    console.time(timer); // start timer
-    const { layers } = recipe;
+    perf.time(timer); // start timer
+    const { fonts, layers, fields } = recipe;
 
     // start up a pdf writer to a write stream
     const writeStream = new HummusWriteStream();
@@ -45,11 +80,25 @@ export class PDFBuilder {
       this.outputStream.on('data', (chunk) => appendData.bind(this)(chunk));
     }
 
+    if (fonts) {
+      // fetch and initalize all fonts
+      await BPromise.map(fonts, async (font) => {
+        perf.timeLog(timer, `Checking font cache for ${font.family}`);
+        const fontFilePath = getFilePathForFontFamily(font.family);
+        if (!fs.existsSync(fontFilePath)) {
+          perf.timeLog(timer, `Fetching font ${font.family} from ${font.url}...`);
+          const buffer = await fetchBuffer(font.url);
+          fs.writeFileSync(fontFilePath, buffer);
+          perf.timeLog(timer, `Initalized font ${font.family}`);
+        }
+      });
+    }
+
     // fetch all layers into an array of buffers
-    const layerBuffers = await BPromise.mapSeries(layers, async (url: string, index) => {
-      console.timeLog(timer, `Fetching layer ${index}: ${url}`);
-      const buffer = await fetchBuffer(url);
-      console.timeLog(timer, `Fetched layer ${index}! (${buffer.length} bytes)`);
+    const layerBuffers = await BPromise.mapSeries(layers, async (layer, index) => {
+      perf.timeLog(timer, `Fetching layer ${index}: ${layer.url}`);
+      const buffer = await fetchBuffer(layer.url);
+      perf.timeLog(timer, `Fetched layer ${index}! (${buffer.length} bytes)`);
       return buffer;
     });
 
@@ -60,35 +109,58 @@ export class PDFBuilder {
 
     // compose all pages in sequence
     for (let pagenum = 0; pagenum < pagesCount; pagenum++) {
-      console.timeLog(timer, `Composing page ${pagenum}`);
+      perf.timeLog(timer, `Composing page ${pagenum}`);
 
       // get dimensions for the bottom pdf layer
       const pageDimensions = bottomReader.parsePage(pagenum).getMediaBox();
 
       // create a new page with same dimensions
       const page = writer.createPage(...pageDimensions);
-      console.timeLog(timer, `Page ${pagenum} created with dimensions ${pageDimensions.join(', ')}`);
+      perf.timeLog(timer, `Page ${pagenum} created with dimensions ${pageDimensions.join(', ')}`);
 
       // create read streams for each pdf layer
       const layerStreams = layerBuffers.map((buffer) => new HummusReadStream(buffer));
 
       // merge all pdf layers to the page
       for (const [layer, stream] of layerStreams.entries()) {
-        console.timeLog(timer, `Merging layer ${layer} to page ${pagenum}...`);
+        perf.timeLog(timer, `Merging layer ${layer} to page ${pagenum}...`);
         writer.mergePDFPagesToPage(page, stream, {
           type: hummus.eRangeTypeSpecific,
           specificRanges: [[pagenum, pagenum] as hummus.PageRange],
         });
       }
 
+      // create a content context for page
+      const ctx = writer.startPageContentContext(page);
+
+      // write fields for page
+      const pageFields = _.filter(fields || [], (field) => Number(field.page) === pagenum + 1 || field.page === 'all');
+      perf.timeLog(timer, `Writing ${pageFields.length} text fields on page ${pagenum}...`);
+      fields.forEach((field) => {
+        // rotation
+        const rad = 0;
+
+        // draw text
+        ctx.q();
+        ctx.cm(Math.cos(rad), Math.sin(rad), -Math.sin(rad), Math.cos(rad), field.x, field.y);
+        ctx.writeText(field.text, 0, 0, {
+          font: writer.getFontForFile(getFilePathForFontFamily(field.font)),
+          size: field.size,
+          color: cmykStringToHex(field.color),
+          colorspace: 'cmyk',
+        });
+        ctx.Q();
+      });
+
       // write the page to output
       writer.writePage(page);
+      perf.timeLog(timer, `Page ${pagenum} finished!`);
     }
 
     // terminate output
     writer.end();
     writeStream.end();
-    console.timeEnd(timer); // finish timer
+    perf.timeEnd(timer, `Finished writing pdf`); // finish timer
 
     // return a buffer from this function if output type is specified as buffer
     if (this.mode === BuilderOutputMode.Buffer) {
@@ -103,4 +175,9 @@ export class PDFBuilder {
   public getBuffer() {
     return Buffer.concat(this.outputData);
   }
+}
+
+function getFilePathForFontFamily(family: string) {
+  const fontFilePath = path.join('/tmp', `${family}.ttf`);
+  return fontFilePath;
 }

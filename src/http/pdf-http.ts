@@ -3,7 +3,7 @@ import * as Lambda from 'aws-lambda';
 import { replyJSON, replyBase64 } from '../util/lambda-util';
 import { ComposePDFRecipe, PDFBuilder, BuilderOutputMode } from '../core/pdf-core';
 
-export async function composePdfHandler(c: Context, event: Lambda.APIGatewayProxyEvent, context: Lambda.Context) {
+export async function composePdfHttpHandler(c: Context, event: Lambda.APIGatewayProxyEvent, context: Lambda.Context) {
   const { headers, requestBody } = c.request;
   const recipe: ComposePDFRecipe = requestBody;
 
@@ -13,7 +13,7 @@ export async function composePdfHandler(c: Context, event: Lambda.APIGatewayProx
     await builder.composePDF(recipe);
     return replyBase64(builder.getBuffer(), { headers: { 'content-type': 'application/pdf' } });
   } else {
-    // stream file to S3 and reply with a reference to the object
+    // @TODO: stream file to S3 and reply with a reference to the object
     const builder = new PDFBuilder({ output: BuilderOutputMode.Stream });
     //    const pdfStream = builder.getReadableStream();
     await builder.composePDF(recipe);

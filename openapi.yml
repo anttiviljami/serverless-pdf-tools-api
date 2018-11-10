@@ -40,8 +40,73 @@ components:
               layers:
                 type: array
                 items:
-                  type: string
-                  format: uri
+                  type: object
+                  properties:
+                    url:
+                      type: string
+                      format: uri
+                      example: 'https://s3-eu-west-1.amazonaws.com/serverless-pdf-tools-api-dev/examples/KM_parhaat_pohja.pdf'
+                  required:
+                    - url
+              fonts:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    family:
+                      type: string
+                      example: arial
+                    url:
+                      type: string
+                      format: uri
+                      example: https://s3-eu-west-1.amazonaws.com/serverless-pdf-tools-api-dev/fonts/arial.ttf
+                  required: 
+                   - family
+                   - url
+              fields:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    page:
+                      anyOf:
+                        - type: integer
+                        - type: string
+                      example: 1
+                    x:
+                      type: number
+                    y: 
+                      type: number
+                    text:
+                      type: string
+                    font:
+                      type: string
+                      example: arial
+                    size:
+                      type: number
+                      example: 12
+                    color:
+                      type: string
+                      example: 0,0,0,0
+                    lineHeight:
+                      type: number
+                      example: 1
+                    align: 
+                      type: string
+                      enum:
+                        - left
+                        - center
+                        - right
+                    rotation:
+                      type: number
+                  required:
+                    - page
+                    - x
+                    - y
+                    - text
+                    - font
+                    - size
+                    - color
             required:
               - layers
   responses:

@@ -17,17 +17,21 @@ provider:
       Resource: arn:aws:s3:::${self:custom.env.${self:provider.stage}.BUCKET_NAME}/*
 
 functions:
+  pdf:
+    handler: dist/pdf.handler
   api:
-    handler: dist/index.handler
+    handler: dist/api.handler
     events:
       - http:
           path: /
           method: ANY
+          private: true
           cors: true
           timeout: 60
       - http:
           path: /{path+}
           method: ANY
+          private: true
           cors: true
           timeout: 60
 
@@ -40,6 +44,8 @@ custom:
     port: ${env:PORT}
     apiKey: ${env:API_KEY}
     dontPrintOutput: true
+  apigwBinary:
+    types: []
   output:
     handler: scripts/build-swaggerui.handler
   env:
