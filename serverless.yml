@@ -53,8 +53,7 @@ custom:
 
   apigwBinary:
     types:
-      - 'image/png'
-      - 'image/jpeg'
+      - 'image/*'
       - 'application/pdf'
 
   output:

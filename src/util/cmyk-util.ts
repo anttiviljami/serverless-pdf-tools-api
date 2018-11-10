@@ -3,7 +3,7 @@
  *
  * @export
  * @param {string} cmykString
- * @returns
+ * @returns {number}
  */
 export function cmykStringToHex(cmykString: string) {
   const components: number[] = cmykString

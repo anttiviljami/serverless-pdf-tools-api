@@ -76,7 +76,9 @@ components:
                       - pdf
                   opts:
                     type: object
-                    additionalProperties: true
+                    oneOf:
+                      - $ref: '#/components/schemas/ScreenshotOptions'
+                      - $ref: '#/components/schemas/PDFOptions'
                 required:
                   - type
             required:
@@ -173,3 +175,90 @@ components:
                       - pdf
                 required:
                   - type
+  schemas: 
+    ScreenshotOptions:
+      type: object
+      properties:
+        path:
+          type: string
+        type:
+          type: string
+          enum:
+            - jpeg
+            - png
+        quality:
+          type: number
+        fullPage:
+          type: boolean
+        clip:
+          type: object
+          properties:
+            x:
+              type: number
+            y:
+              type: number
+            width:
+              type: number
+            height:
+              type: number
+        omitBackground:
+          type: boolean
+          default: false
+    PDFOptions:
+      type: object
+      properties:
+        path:
+          type: string
+        scale:
+          type: number
+          default: 1
+        displayHeaderFooter:
+          type: boolean
+        headerTemplate: 
+          type: string
+        footerTemplate:
+          type: string
+        printBackground:
+          type: boolean
+          default: true
+        landscape: 
+          type: boolean
+        pageRanges:
+          type: string
+        format: 
+          type: string
+          enum:
+            - Letter
+            - Legal
+            - Tabload
+            - Ledger
+            - A0
+            - A1
+            - A2
+            - A3
+            - A4
+            - A5
+        width:
+          type: string
+          default: 100%
+        height:
+          type: string
+          default: 100%
+        margin: 
+          type: object
+          properties:
+            top:
+              type: string
+            right:
+              type: string
+            bottom:
+              type: string
+            left:
+              type: string
+        preferCSSPageSize:
+          type: boolean
+        emulateMedia:
+          type: string
+          enum:
+            - screen
+            - print
