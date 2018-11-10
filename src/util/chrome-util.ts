@@ -3,8 +3,6 @@ import fs from 'fs';
 import path from 'path';
 import tar from 'tar';
 
-let browser: Browser;
-
 const localChromePath = path.join(__dirname, '..', '..', 'bin', 'headless_shell.tar.gz');
 const setupChromePath = path.join(path.sep, 'tmp');
 const localExecutablePath = path.join(setupChromePath, 'headless_shell');
@@ -14,13 +12,18 @@ const launchOpts = {
   args: ['--disable-web-security', '--no-sandbox', '--disable-gpu', '--single-process'],
 };
 
+// global browser instance between invocations
+let browser: Browser;
+
 export async function getBrowser() {
-  if (await isBrowserAvailable()) {
+  if (browser && (await isBrowserAvailable())) {
     return browser;
   }
   if (fs.existsSync(puppeteer.executablePath())) {
+    // use puppeteer bundled version if available
     browser = await puppeteer.launch(launchOpts);
   } else {
+    // set up our own local chrome if needed
     await setupLocalChrome();
     browser = await puppeteer.launch({
       ...launchOpts,
@@ -31,6 +34,9 @@ export async function getBrowser() {
 }
 
 export async function setupLocalChrome() {
+  if (fs.existsSync(localExecutablePath)) {
+    return true;
+  }
   return new Promise((resolve, reject) => {
     fs.createReadStream(localChromePath)
       .on('error', (err) => reject(err))

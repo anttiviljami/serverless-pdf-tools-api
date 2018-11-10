@@ -54,7 +54,7 @@ app.get('/pdf', async (req, res) => {
     const data = lambda
       .invoke({
         FunctionName: process.env.FUNCTION_NAME_PDF,
-        Payload: JSON.stringify({ recipe }),
+        Payload: JSON.stringify({ recipe, output: { type: 'pdf' } }),
       })
       .createReadStream();
 
@@ -86,12 +86,12 @@ app.get('/pdf', async (req, res) => {
   }
 });
 
-app.get('/html', async (req, res) => {
+app.get('/html/screenshot', async (req, res) => {
   try {
     const data = lambda
       .invoke({
         FunctionName: process.env.FUNCTION_NAME_HTML,
-        Payload: JSON.stringify({ html }),
+        Payload: JSON.stringify({ html, output: { type: 'screenshot' } }),
       })
       .createReadStream();
 
@@ -101,6 +101,29 @@ app.get('/html', async (req, res) => {
         .pipe(new Base64Decode())
         .pipe(res);
       return res.status(200).type('image/png');
+    }
+    return res.status(500).json({ err: 'Unkonwn error' });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ err });
+  }
+});
+
+app.get('/html/pdf', async (req, res) => {
+  try {
+    const data = lambda
+      .invoke({
+        FunctionName: process.env.FUNCTION_NAME_HTML,
+        Payload: JSON.stringify({ html, output: { type: 'pdf' } }),
+      })
+      .createReadStream();
+
+    if (data) {
+      data
+        .pipe(stripFirstAndLastByte())
+        .pipe(new Base64Decode())
+        .pipe(res);
+      return res.status(200).type('application/pdf');
     }
     return res.status(500).json({ err: 'Unkonwn error' });
   } catch (err) {

@@ -52,6 +52,19 @@ components:
             properties: 
               html:
                 type: string
+              output:
+                type: object
+                properties:
+                  type: 
+                    type: string
+                    enum:
+                      - screenshot
+                      - pdf
+                  opts:
+                    type: object
+                    additionalProperties: true
+                required:
+                  - type
             required:
               - html
     ComposePdfPayload:
@@ -137,3 +150,12 @@ components:
                         - color
                 required:
                   - layers
+              output:
+                type: object
+                properties:
+                  type: 
+                    type: string
+                    enum:
+                      - pdf
+                required:
+                  - type

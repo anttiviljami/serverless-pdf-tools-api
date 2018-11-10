@@ -19,10 +19,13 @@ provider:
 functions:
   pdf:
     handler: dist/pdf.handler
+    timeout: 90
   html:
     handler: dist/html.handler
+    timeout: 90
   api:
     handler: dist/api.handler
+    timeout: 90
     events:
       - http:
           path: /
