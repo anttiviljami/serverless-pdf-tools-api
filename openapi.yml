@@ -17,11 +17,11 @@ paths:
         Composes a PDF file from payload instructions, saves it to S3 and returns the created S3 object.
       tags:
         - pdf
-      responses:
-        200:
-          $ref: '#/components/responses/S3Created'
       requestBody:
         $ref: '#/components/requestBodies/ComposePdfPayload'
+      responses:
+        200:
+          $ref: '#/components/responses/S3ReferenceOrPdf'
 components:
   securitySchemes:
     ApiKey:
@@ -41,12 +41,12 @@ components:
                 type: array
                 items:
                   type: string
-                  example: ''
+                  format: uri
             required:
               - layers
   responses:
-    S3Created:
-      description: 'Reference to S3 object'
+    S3ReferenceOrPdf:
+      description: 'Reference to S3 object or the PDF file'
       content:
         application/json:
           schema:
@@ -58,3 +58,7 @@ components:
                   url:
                     type: string
                     format: uri
+        application/pdf:
+          schema:
+            type: string
+            format: binary

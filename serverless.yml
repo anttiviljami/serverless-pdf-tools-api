@@ -39,6 +39,7 @@ custom:
   serverless-offline:
     port: ${env:PORT}
     apiKey: ${env:API_KEY}
+    dontPrintOutput: true
   output:
     handler: scripts/build-swaggerui.handler
   env:
