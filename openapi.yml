@@ -6,6 +6,8 @@ info:
 tags:
   - name: pdf
     description: PDF operations
+  - name: html
+    description: HTML operations
 security:
   - ApiKey: []
 paths:
@@ -34,18 +36,18 @@ paths:
       description: |
         Composes a PDF file from recipe and serves it in desired formats
       tags:
-        - pdf
+        - html
       requestBody:
         $ref: '#/components/requestBodies/ComposeHtmlPayload'
       responses:
         200:
           description: ok
           content: 
-            application/pdf: 
+            image/png: 
               schema:
                 type: string
                 format: binary
-            image/png: 
+            application/pdf: 
               schema:
                 type: string
                 format: binary
@@ -76,7 +78,7 @@ components:
                       - pdf
                   opts:
                     type: object
-                    oneOf:
+                    anyOf:
                       - $ref: '#/components/schemas/ScreenshotOptions'
                       - $ref: '#/components/schemas/PDFOptions'
                 required:
@@ -178,6 +180,7 @@ components:
   schemas: 
     ScreenshotOptions:
       type: object
+      additionalProperties: true
       properties:
         path:
           type: string
@@ -206,6 +209,7 @@ components:
           default: false
     PDFOptions:
       type: object
+      additionalProperties: true
       properties:
         path:
           type: string
