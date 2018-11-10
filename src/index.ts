@@ -1,13 +1,9 @@
 import 'source-map-support/register';
 import OpenAPIBackend from 'openapi-backend';
 import path from 'path';
-import { APIGatewayProxyEvent, Context } from 'aws-lambda';
-
-const headers = {
-  'content-type': 'application/json',
-  'access-control-allow-origin': '*',
-  'access-control-allow-credentials': true,
-};
+import * as Lambda from 'aws-lambda';
+import { replyJSON } from './util/lambda-util';
+import { composePdf } from './handler/pdf-handler';
 
 // define api + handlers
 const api = new OpenAPIBackend({
@@ -15,26 +11,17 @@ const api = new OpenAPIBackend({
 });
 
 api.register({
-  notImplemented: async (c, event: APIGatewayProxyEvent, context: Context) => ({
-    statusCode: 200,
-    body: JSON.stringify(api.mockResponseForOperation(c.operation.operationId)),
-    headers,
-  }),
-  notFound: async (c, event: APIGatewayProxyEvent, context: Context) => ({
-    statusCode: 404,
-    body: JSON.stringify({ err: 'not found' }),
-    headers,
-  }),
-  validationFail: async (c, event: APIGatewayProxyEvent, context: Context) => ({
-    statusCode: 400,
-    body: JSON.stringify({ err: c.validation.errors }),
-    headers,
-  }),
+  composePdf,
+  notFound: async (c, event: Lambda.APIGatewayProxyEvent, context: Lambda.Context) => replyJSON({ err: 'not found' }),
+  notImplemented: async (c, event: Lambda.APIGatewayProxyEvent, context: Lambda.Context) =>
+    replyJSON(api.mockResponseForOperation(c.operation.operationId)),
+  validationFail: async (c, event: Lambda.APIGatewayProxyEvent, context: Lambda.Context) =>
+    replyJSON({ err: c.validation.errors }),
 });
 
 api.init();
 
-export async function handler(event: APIGatewayProxyEvent, context: Context) {
+export async function handler(event: Lambda.APIGatewayProxyEvent, context: Lambda.Context) {
   return api.handleRequest(
     {
       method: event.httpMethod,
