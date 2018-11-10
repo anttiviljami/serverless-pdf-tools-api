@@ -136,7 +136,7 @@ export class PDFBuilder {
       // write fields for page
       const pageFields = _.filter(fields || [], (field) => Number(field.page) === pagenum + 1 || field.page === 'all');
       perf.timeLog(timer, `Writing ${pageFields.length} text fields on page ${pagenum}...`);
-      fields.forEach((field) => {
+      pageFields.forEach((field) => {
         // rotation
         const rad = 0;
 
