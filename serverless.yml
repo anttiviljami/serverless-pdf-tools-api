@@ -25,23 +25,24 @@ functions:
     timeout: 90
   api:
     handler: dist/api.handler
-    timeout: 90
+    timeout: 30
     events:
       - http:
           path: /
           method: ANY
           private: true
           cors: true
-          timeout: 60
       - http:
           path: /{path+}
           method: ANY
           private: true
           cors: true
-          timeout: 60
+          contentHandling: CONVERT_TO_BINARY
 
 plugins:
   - serverless-offline
+  - serverless-apigw-binary
+  - serverless-apigwy-binary
   - serverless-stack-output
 
 custom:
@@ -49,8 +50,16 @@ custom:
     port: ${env:PORT}
     apiKey: ${env:API_KEY}
     dontPrintOutput: true
+
+  apigwBinary:
+    types:
+      - 'image/png'
+      - 'image/jpeg'
+      - 'application/pdf'
+
   output:
     handler: scripts/build-swaggerui.handler
+
   env:
     local:
       BUCKET_NAME: ${self:service}-dev

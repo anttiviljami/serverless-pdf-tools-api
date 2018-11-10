@@ -20,7 +20,7 @@ export async function replyJSON(json: any, opts?: ReplyOpts) {
   return {
     ...replyOpts,
     headers: {
-      'content-type': 'application/json',
+      'Content-Type': 'application/json',
       ...defaultOpts.headers,
       ...replyOpts.headers,
     },
@@ -36,7 +36,7 @@ export async function replyBase64(buffer: Buffer, opts?: ReplyOpts) {
   return {
     ...replyOpts,
     headers: {
-      'content-type': 'application/octet-stream',
+      'Content-Type': 'application/octet-stream',
       ...defaultOpts.headers,
       ...replyOpts.headers,
     },

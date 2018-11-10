@@ -11,5 +11,5 @@ export async function composePdfHttpHandler(c: Context, event: Lambda.APIGateway
   // return raw buffer as base64
   const builder = new PDFBuilder({ output: BuilderOutputMode.Buffer });
   await builder.composePDF(recipe);
-  return replyBase64(builder.getBuffer(), { headers: { 'content-type': 'application/pdf' } });
+  return replyBase64(builder.getBuffer(), { headers: { 'Content-Type': 'application/pdf' } });
 }

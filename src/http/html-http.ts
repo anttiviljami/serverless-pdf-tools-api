@@ -9,10 +9,10 @@ export async function composeHtmlHttpHandler(c: Context, event: Lambda.APIGatewa
   const { html, output } = requestBody;
   if (output.type === 'screenshot') {
     const image = await screenshotHTML(html, output.opts as ScreenshotOptions);
-    return replyBase64(image, { headers: { 'content-type': 'image/png' } });
+    return replyBase64(image, { headers: { 'Content-Type': 'image/png' } });
   }
   if (output.type === 'pdf') {
     const pdf = await pdfHTML(html, output.opts as PDFOptions);
-    return replyBase64(pdf, { headers: { 'content-type': 'application/pdf' } });
+    return replyBase64(pdf, { headers: { 'Content-Type': 'application/pdf' } });
   }
 }

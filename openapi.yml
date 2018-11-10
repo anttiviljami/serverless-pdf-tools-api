@@ -22,6 +22,11 @@ paths:
       responses:
         200:
           description: ok
+          content: 
+            application/pdf: 
+              schema:
+                type: string
+                format: binary
   /html:
     post:
       operationId: composeHTML
@@ -35,6 +40,15 @@ paths:
       responses:
         200:
           description: ok
+          content: 
+            application/pdf: 
+              schema:
+                type: string
+                format: binary
+            image/png: 
+              schema:
+                type: string
+                format: binary
 components:
   securitySchemes:
     ApiKey:
