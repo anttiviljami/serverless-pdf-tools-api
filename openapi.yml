@@ -133,6 +133,7 @@ components:
                       anyOf:
                         - $ref: '#/components/schemas/TextElement'
                         - $ref: '#/components/schemas/ImageElement'
+                        - $ref: '#/components/schemas/HTMLElement'
                 required:
                   - layers
               output:
@@ -183,8 +184,6 @@ components:
       type: object
       additionalProperties: true
       properties:
-        path:
-          type: string
         scale:
           type: number
           default: 1
@@ -320,3 +319,40 @@ components:
         - page
         - x
         - y
+    HTMLElement:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - html
+        html:
+          type: string
+        pageWidth:
+          type: string
+          example: 155mm
+        pageHeight: 
+          type: string
+          example: 97mm
+        page:
+          anyOf:
+            - type: integer
+            - type: string
+              enum:
+                - all
+          example: 0
+        x:
+          type: number
+        y: 
+          type: number
+        width:
+          type: number
+        height: 
+          type: number
+      required:
+        - html
+        - page
+        - x
+        - y
+        - pageWidth
+        - pageHeight

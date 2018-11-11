@@ -2,22 +2,38 @@ type HummusReadStream = import('../util/hummus-util').HummusReadStream;
 type HummusWriteStream = import('../util/hummus-util').HummusWriteStream;
 
 declare module 'hummus' {
-  export function createReader(inputStream: HummusReadStream): HummusReader;
+  export function createReader(pdfFilename: string): HummusReader;
+  export function createReader(pdfStream: HummusReadStream): HummusReader;
 
   export function createWriter(outputFilename: string): HummusWriter;
   export function createWriter(outputStream: HummusWriteStream): HummusWriter;
 
   export function createWriterToModify(inputStream: HummusReadStream, outputStream: HummusWriteStream): HummusWriter;
 
-  export let eRangeTypeSpecific: ERangeType;
-
-  export type Dimensions = [number, number, number, number];
-  export type PageRange = [number, number];
-
   export enum ERangeType {
     'All' = 0,
     'Specific' = 1,
   }
+
+  export enum EPDFPageBoxType {
+    'MediaBox' = 0,
+    'CropBox' = 1,
+    'BleedBox' = 2,
+    'TrimBox' = 3,
+    'ArtBox' = 4,
+  }
+
+  export let eRangeTypeAll: ERangeType;
+  export let eRangeTypeSpecific: ERangeType;
+
+  export let ePDFPageBoxMediaBox: EPDFPageBoxType;
+  export let ePDFPageBoxCropBox: EPDFPageBoxType;
+  export let ePDFPageBoxBleedBox: EPDFPageBoxType;
+  export let ePDFPageBoxTrimBox: EPDFPageBoxType;
+  export let ePDFPageBoxArtBox: EPDFPageBoxType;
+
+  export type Dimensions = [number, number, number, number];
+  export type PageRange = [number, number];
 
   export interface HummusReader {
     getPDFLevel: () => void;
@@ -60,12 +76,14 @@ declare module 'hummus' {
     createFormXObjectFromTIFF: (image: string | HummusReadStream) => XObject;
     createFormXObjectFromJPG: (image: string | HummusReadStream) => XObject;
 
-    createFormXObjectsFromPDF: (pdf: string | HummusReadStream, mediaBox: number) => XObject;
+    createFormXObjectsFromPDF: (pdf: string | HummusReadStream, pageBoxType: EPDFPageBoxType) => FormID[];
 
     getImageDimensions: (...opts: any[]) => any;
 
     end: () => void;
   }
+
+  export interface FormID {}
 
   export interface XObject {}
 
@@ -79,6 +97,11 @@ declare module 'hummus' {
 
   export interface PDFPage {
     mediaBox: Dimensions;
+    getResourcesDictionary: () => PDFPageResourcesDictionary;
+  }
+
+  export interface PDFPageResourcesDictionary {
+    addFormXObjectMapping: (id: FormID) => XObject;
   }
 
   export interface Font {

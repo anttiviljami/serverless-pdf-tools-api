@@ -14,6 +14,7 @@ import { cmykStringToHex } from '../util/cmyk-util';
 import * as perf from '../util/perf';
 
 import { Readable } from 'stream';
+import { pdfHTML } from './puppeteer-core';
 
 interface URLReference {
   url: string;
@@ -54,7 +55,14 @@ interface ImageElement extends BaseElement {
   url: string;
 }
 
-type Element = TextElement | ImageElement;
+interface HTMLElement extends BaseElement {
+  type: 'html';
+  html: string;
+  pageWidth: string;
+  pageHeight: string;
+}
+
+type Element = TextElement | ImageElement | HTMLElement;
 
 export interface ComposePDFRecipe {
   layers: URLReference[];
@@ -88,14 +96,33 @@ export class PDFBuilder {
     this.outputStream = this.writeStream.output;
   }
 
+  /**
+   * Gets the composed pdf file as readable stream
+   *
+   * @returns
+   * @memberof PDFBuilder
+   */
   public getReadableStream() {
     return this.outputStream;
   }
 
+  /**
+   * Gets the composed pdf file as Buffer
+   *
+   * @returns
+   * @memberof PDFBuilder
+   */
   public getBuffer() {
     return Buffer.concat(this.outputData);
   }
 
+  /**
+   * Composes the PDF file from recipe (populates either readable stream or buffer)
+   *
+   * @param {ComposePDFRecipe} recipe
+   * @returns {(Promise<void | Buffer>)}
+   * @memberof PDFBuilder
+   */
   public async composePDF(recipe: ComposePDFRecipe): Promise<void | Buffer> {
     const { fonts, layers, elements } = recipe;
     const timer = `composePdf-${new Date().getTime()}`;
@@ -140,7 +167,7 @@ export class PDFBuilder {
       .uniq()
       .value();
 
-    // fetch all images to a temp folder
+    // fetch all images to disk
     // (can't use buffers here because hummus can't get dimensions for images created from streams)
     const imageFiles = await BPromise.mapSeries(imageUrls, async (url) => {
       perf.timeLog(timer, `Fetching image ${url}`);
@@ -155,6 +182,26 @@ export class PDFBuilder {
 
     // create a dictionary of image urls to buffers
     this.imageFiles = _.zipObject(imageUrls, imageFiles);
+
+    // get all html fragments
+    const htmlElements = _.filter(elements, { type: 'html' });
+
+    // generate pdf fragments from html elements using puppeteer and save to disk
+    await BPromise.mapSeries(htmlElements, async (el, index) => {
+      perf.timeLog(timer, `Generating pdf fragment for html ${index}...`);
+      const { html, pageWidth, pageHeight } = el as HTMLElement;
+      const targetFile = this.getPDFFragmentFilePathForHtmlElement(el as HTMLElement);
+      const buffer = await pdfHTML(html, {
+        emulateMedia: 'screen',
+        width: pageWidth,
+        height: pageHeight,
+        pageRanges: '1',
+        omitBackground: true, // set background to transparent
+        printBackground: true, // include the transparent background
+      });
+      fs.writeFileSync(targetFile, buffer);
+      perf.timeLog(timer, `Saved pdf fragment to ${targetFile} (${buffer.length} bytes)`);
+    });
 
     // start from bottom layer
     const bottomLayer = new HummusReadStream(_.first(this.layerBuffers));
@@ -198,6 +245,10 @@ export class PDFBuilder {
         if (el.type === 'image') {
           return this.drawImage(el as ImageElement, writer, ctx);
         }
+
+        if (el.type === 'html') {
+          return this.drawHtml(el as HTMLElement, writer, ctx, page);
+        }
       });
 
       // write the page to output
@@ -216,7 +267,68 @@ export class PDFBuilder {
     }
   }
 
-  private drawImage(el: ImageElement, writer: hummus.HummusWriter, ctx: hummus.ContentContext) {
+  /**
+   * Draws an HTML fragment (rendered as PDF) onto a page content context
+   *
+   * @private
+   * @param {HTMLElement} el
+   * @param {hummus.HummusWriter} writer
+   * @param {hummus.ContentContext} ctx
+   * @param {hummus.ParsedPage} page
+   * @returns {void}
+   * @memberof PDFBuilder
+   */
+  private drawHtml(
+    el: HTMLElement,
+    writer: hummus.HummusWriter,
+    ctx: hummus.ContentContext,
+    page: hummus.PDFPage,
+  ): void {
+    const pdfFragmentPath = this.getPDFFragmentFilePathForHtmlElement(el);
+    const fragmentReader = hummus.createReader(pdfFragmentPath);
+
+    // convert rotation to radians
+    const rotation = el.rotation || 0;
+    const rad = (-rotation * Math.PI) / 180;
+
+    // calculate scale from fragment dimensions and desired element width / height
+    const [, , width, height] = fragmentReader.parsePage(0).getMediaBox();
+    let scale = 1;
+    const limits: number[] = [];
+    if (el.width) {
+      limits.push(el.width / width); // width ratio
+    }
+    if (el.height) {
+      limits.push(el.height / height); // height ratio
+    }
+    if (limits.length > 0) {
+      // choose the smallest limiting factor
+      scale = Math.min(...limits);
+    }
+
+    // extract FormX objects from pdf
+    const [formId] = writer.createFormXObjectsFromPDF(pdfFragmentPath, hummus.ePDFPageBoxMediaBox);
+
+    // draw pdf
+    ctx.q();
+    // rotate and translate
+    ctx.cm(Math.cos(rad), Math.sin(rad), -Math.sin(rad), Math.cos(rad), el.x, el.y);
+    // scale
+    ctx.cm(scale, 0, 0, scale, 0, 0);
+    ctx.doXObject(page.getResourcesDictionary().addFormXObjectMapping(formId));
+    ctx.Q();
+  }
+
+  /**
+   * Draws an image onto a page content context
+   *
+   * @private
+   * @param {ImageElement} el
+   * @param {hummus.HummusWriter} writer
+   * @param {hummus.ContentContext} ctx
+   * @memberof PDFBuilder
+   */
+  private drawImage(el: ImageElement, writer: hummus.HummusWriter, ctx: hummus.ContentContext): void {
     // convert rotation to radians
     const rotation = el.rotation || 0;
     const rad = (-rotation * Math.PI) / 180;
@@ -250,7 +362,7 @@ export class PDFBuilder {
 
     // draw image
     ctx.q();
-    // rotate
+    // rotate and translate
     ctx.cm(Math.cos(rad), Math.sin(rad), -Math.sin(rad), Math.cos(rad), el.x, el.y);
     // scale
     ctx.cm(scale, 0, 0, scale, 0, 0);
@@ -258,7 +370,16 @@ export class PDFBuilder {
     ctx.Q();
   }
 
-  private drawText(el: TextElement, writer: hummus.HummusWriter, ctx: hummus.ContentContext) {
+  /**
+   * Draws a text element onto a page content context
+   *
+   * @private
+   * @param {TextElement} el
+   * @param {hummus.HummusWriter} writer
+   * @param {hummus.ContentContext} ctx
+   * @memberof PDFBuilder
+   */
+  private drawText(el: TextElement, writer: hummus.HummusWriter, ctx: hummus.ContentContext): void {
     const font = writer.getFontForFile(this.getFilePathForFontFamily(el.font));
     const lineHeight = el.lineHeight || 1;
 
@@ -346,7 +467,7 @@ export class PDFBuilder {
   }
 
   private getFilePathForFontFamily(family: string) {
-    const filePath = path.join(path.sep, 'tmp', `${family}.ttf`);
+    const filePath = path.join(path.sep, 'tmp', `font-${family}.ttf`);
     return filePath;
   }
 
@@ -354,7 +475,15 @@ export class PDFBuilder {
     const hash = createHash('sha256')
       .update(url)
       .digest('hex');
-    const filePath = path.join(path.sep, 'tmp', `${hash}.${extension}`);
+    const filePath = path.join(path.sep, 'tmp', `image-${hash}.${extension}`);
+    return filePath;
+  }
+
+  private getPDFFragmentFilePathForHtmlElement(el: HTMLElement) {
+    const hash = createHash('sha256')
+      .update(JSON.stringify(el))
+      .digest('hex');
+    const filePath = path.join(path.sep, 'tmp', `fragment-${hash}.pdf`);
     return filePath;
   }
 }

@@ -30,6 +30,24 @@ const recipe = {
   ],
   elements: [
     {
+      type: 'image',
+      url: 'https://public.keskofiles.com/f/k-ruoka/product/4009301043187?w=500?fm=png',
+      page: 0,
+      x: 250,
+      y: 500,
+      height: 100,
+      rotation: -45,
+    },
+    {
+      type: 'image',
+      url: 'https://public.keskofiles.com/f/k-ruoka/product/4009301043187?w=500?fm=png',
+      page: 1,
+      x: 250,
+      y: 500,
+      height: 100,
+      rotation: 45,
+    },
+    {
       type: 'text',
       page: 0,
       x: 200,
@@ -56,7 +74,7 @@ const html = `<html>
 
 app.get('/pdf', async (req, res) => {
   try {
-    const data = lambda
+    lambda
       .invoke({
         FunctionName: process.env.FUNCTION_NAME_PDF,
         Payload: JSON.stringify({ recipe, output: { type: 'pdf' } }),
@@ -74,7 +92,7 @@ app.get('/pdf', async (req, res) => {
 
 app.get('/pdf/montage', async (req, res) => {
   try {
-    const data = lambda
+    lambda
       .invoke({
         FunctionName: process.env.FUNCTION_NAME_PDF,
         Payload: JSON.stringify({ recipe, output: { type: 'montage', opts: { montagePages: [0, 1] } } }),
@@ -92,7 +110,7 @@ app.get('/pdf/montage', async (req, res) => {
 
 app.get('/pdf/cover', async (req, res) => {
   try {
-    const data = lambda
+    lambda
       .invoke({
         FunctionName: process.env.FUNCTION_NAME_PDF,
         Payload: JSON.stringify({ recipe, output: { type: 'cover' } }),
@@ -110,7 +128,7 @@ app.get('/pdf/cover', async (req, res) => {
 
 app.get('/html/screenshot', async (req, res) => {
   try {
-    const data = lambda
+    lambda
       .invoke({
         FunctionName: process.env.FUNCTION_NAME_HTML,
         Payload: JSON.stringify({ html, output: { type: 'screenshot' } }),
@@ -128,7 +146,7 @@ app.get('/html/screenshot', async (req, res) => {
 
 app.get('/html/pdf', async (req, res) => {
   try {
-    const data = lambda
+    lambda
       .invoke({
         FunctionName: process.env.FUNCTION_NAME_HTML,
         Payload: JSON.stringify({ html, output: { type: 'pdf' } }),

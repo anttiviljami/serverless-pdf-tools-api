@@ -41,7 +41,6 @@ export async function screenshotHTML(html: string, opts?: ScreenshotOptions) {
 export type PDFFormat = 'Letter' | 'Legal' | 'Tabload' | 'Ledger' | 'A0' | 'A1' | 'A2' | 'A3' | 'A4' | 'A5';
 
 export interface PDFOptions {
-  path?: string;
   scale?: number;
   displayHeaderFooter?: boolean;
   headerTemplate?: string;
@@ -60,6 +59,7 @@ export interface PDFOptions {
   };
   preferCSSPageSize?: boolean;
   emulateMedia: 'screen' | 'print';
+  omitBackground: true;
 }
 
 export async function pdfHTML(html: string, opts?: PDFOptions) {
@@ -82,6 +82,14 @@ export async function pdfHTML(html: string, opts?: PDFOptions) {
   if (opts && opts.emulateMedia) {
     page.emulateMedia(opts.emulateMedia);
   }
+
+  if (opts && opts.omitBackground) {
+    // @ts-ignore: Property '_emulationManager' does not exist on type 'Page'.
+    await page._emulationManager._client.send('Emulation.setDefaultBackgroundColorOverride', {
+      color: { r: 0, g: 0, b: 0, a: 0 },
+    });
+  }
+
   const pdf = await page.pdf(opts);
 
   browser.close();
