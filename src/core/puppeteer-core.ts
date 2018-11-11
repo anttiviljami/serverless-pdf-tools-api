@@ -12,6 +12,10 @@ export interface ScreenshotOptions {
     width: number;
     height: number;
   };
+  viewport?: {
+    width: number;
+    height: number;
+  };
   omitBackground?: boolean;
 }
 
@@ -22,8 +26,12 @@ export async function screenshotHTML(html: string, opts?: ScreenshotOptions) {
   perf.timeLog(timer, `Getting chromium instance...`);
   const browser = await getBrowser();
 
+  // open page
   perf.timeLog(timer, `Opening new browser tab...`);
   const page = await browser.newPage();
+
+  // set viewport
+  page.setViewport({ ...page.viewport(), ...(opts.viewport || {}) });
 
   // Set HTML as page content and wait for network requests to complete.
   perf.timeLog(timer, `Populating page source with HTML and rendering`);

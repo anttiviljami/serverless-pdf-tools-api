@@ -166,6 +166,13 @@ components:
           type: number
         fullPage:
           type: boolean
+        viewport:
+          type: object
+          properties:
+            width:
+              type: number
+            height:
+              type: number
         clip:
           type: object
           properties:
