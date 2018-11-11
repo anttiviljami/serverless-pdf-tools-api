@@ -2,8 +2,11 @@ import _ from 'lodash';
 import BPromise from 'bluebird';
 import path from 'path';
 import fs from 'fs';
+import { createHash } from 'crypto';
 
 import * as hummus from 'hummus';
+import fetch from 'node-fetch';
+import mime from 'mime';
 
 import { fetchBuffer } from '../util/fetch-util';
 import { HummusReadStream, HummusWriteStream } from '../util/hummus-util';
@@ -46,7 +49,12 @@ interface TextElement extends BaseElement {
   align?: TextAlign;
 }
 
-type Element = TextElement;
+interface ImageElement extends BaseElement {
+  type: 'image';
+  url: string;
+}
+
+type Element = TextElement | ImageElement;
 
 export interface ComposePDFRecipe {
   layers: URLReference[];
@@ -69,6 +77,8 @@ export class PDFBuilder {
   public outputData: Buffer[];
 
   private writeStream: HummusWriteStream;
+  private layerBuffers: Buffer[];
+  private imageFiles: { [url: string]: string };
 
   constructor(opts: PDFBuilderOpts = {}) {
     this.mode = opts.output || BuilderOutputMode.Buffer;
@@ -105,7 +115,7 @@ export class PDFBuilder {
       // fetch and initalize all fonts
       await BPromise.map(fonts, async (font) => {
         perf.timeLog(timer, `Checking font cache for ${font.family}`);
-        const fontFilePath = getFilePathForFontFamily(font.family);
+        const fontFilePath = this.getFilePathForFontFamily(font.family);
         if (!fs.existsSync(fontFilePath)) {
           perf.timeLog(timer, `Fetching font ${font.family} from ${font.url}...`);
           const buffer = await fetchBuffer(font.url);
@@ -116,15 +126,38 @@ export class PDFBuilder {
     }
 
     // fetch all layers into an array of buffers
-    const layerBuffers = await BPromise.mapSeries(layers, async (layer, index) => {
+    this.layerBuffers = await BPromise.mapSeries(layers, async (layer, index) => {
       perf.timeLog(timer, `Fetching layer ${index}: ${layer.url}`);
       const buffer = await fetchBuffer(layer.url);
       perf.timeLog(timer, `Fetched layer ${index}! (${buffer.length} bytes)`);
       return buffer;
     });
 
+    // get all image urls
+    const imageUrls = _.chain(elements)
+      .filter({ type: 'image' })
+      .map('url')
+      .uniq()
+      .value();
+
+    // fetch all images to a temp folder
+    // (can't use buffers here because hummus can't get dimensions for images created from streams)
+    const imageFiles = await BPromise.mapSeries(imageUrls, async (url) => {
+      perf.timeLog(timer, `Fetching image ${url}`);
+      const res = await fetch(url);
+      const buffer = await res.buffer();
+      const ext = mime.getExtension(res.headers.get('Content-Type'));
+      const targetFile = this.getFilePathForImageURL(url, ext);
+      fs.writeFileSync(targetFile, buffer);
+      perf.timeLog(timer, `Saved image to ${targetFile} (${buffer.length} bytes)`);
+      return targetFile;
+    });
+
+    // create a dictionary of image urls to buffers
+    this.imageFiles = _.zipObject(imageUrls, imageFiles);
+
     // start from bottom layer
-    const bottomLayer = new HummusReadStream(_.first(layerBuffers));
+    const bottomLayer = new HummusReadStream(_.first(this.layerBuffers));
     const bottomReader = hummus.createReader(bottomLayer);
     const pagesCount = bottomReader.getPagesCount();
 
@@ -140,7 +173,7 @@ export class PDFBuilder {
       perf.timeLog(timer, `Page ${pagenum} created with dimensions ${pageDimensions.join(', ')}`);
 
       // create read streams for each pdf layer
-      const layerStreams = layerBuffers.map((buffer) => new HummusReadStream(buffer));
+      const layerStreams = this.layerBuffers.map((buffer) => new HummusReadStream(buffer));
 
       // merge all pdf layers to the page
       for (const [layer, stream] of layerStreams.entries()) {
@@ -159,7 +192,11 @@ export class PDFBuilder {
       perf.timeLog(timer, `Drawing ${pageElements.length} elements on page ${pagenum}...`);
       pageElements.forEach((el) => {
         if (el.type === 'text') {
-          return this.drawText(el, writer, ctx);
+          return this.drawText(el as TextElement, writer, ctx);
+        }
+
+        if (el.type === 'image') {
+          return this.drawImage(el as ImageElement, writer, ctx);
         }
       });
 
@@ -179,9 +216,55 @@ export class PDFBuilder {
     }
   }
 
+  private drawImage(el: ImageElement, writer: hummus.HummusWriter, ctx: hummus.ContentContext) {
+    // convert rotation to radians
+    const rotation = el.rotation || 0;
+    const rad = (-rotation * Math.PI) / 180;
+
+    // create image XObject from buffer
+    const image = this.imageFiles[el.url];
+    const imageType = mime.getType(image);
+
+    let XObject: hummus.XObject;
+    if (imageType === 'image/png') {
+      XObject = writer.createFormXObjectFromPNG(image);
+    }
+    if (imageType === 'image/jpeg') {
+      XObject = writer.createFormXObjectFromJPG(image);
+    }
+
+    // calculate scale from image dimensions and desired element width / height
+    let scale = 1;
+    const { width, height } = writer.getImageDimensions(image);
+    const limits: number[] = [];
+    if (el.width) {
+      limits.push(el.width / width); // width ratio
+    }
+    if (el.height) {
+      limits.push(el.height / height); // height ratio
+    }
+    if (limits.length > 0) {
+      // choose the smallest limiting factor
+      scale = Math.min(...limits);
+    }
+
+    // draw image
+    ctx.q();
+    // rotate
+    ctx.cm(Math.cos(rad), Math.sin(rad), -Math.sin(rad), Math.cos(rad), el.x, el.y);
+    // scale
+    ctx.cm(scale, 0, 0, scale, 0, 0);
+    ctx.doXObject(XObject);
+    ctx.Q();
+  }
+
   private drawText(el: TextElement, writer: hummus.HummusWriter, ctx: hummus.ContentContext) {
-    const font = writer.getFontForFile(getFilePathForFontFamily(el.font));
+    const font = writer.getFontForFile(this.getFilePathForFontFamily(el.font));
     const lineHeight = el.lineHeight || 1;
+
+    // convert rotation to radians
+    const rotation = el.rotation || 0;
+    const rad = (-rotation * Math.PI) / 180;
 
     // wrap lines
     const lines: string[] = [];
@@ -203,7 +286,6 @@ export class PDFBuilder {
             if (lineWords.length > 1) {
               // new line from current line
               lines.push(lineWords.join(' '));
-
               // push wrapping word to next line
               lineWords = [word];
               lineLength = wordDimensions.width;
@@ -229,9 +311,6 @@ export class PDFBuilder {
     });
 
     lines.map((line, linenum) => {
-      // convert rotation to radians
-      const rad = (-el.rotation * Math.PI) / 180;
-
       // Calculate line dimensions.
       const lineDimensions = font.calculateTextDimensions(line, el.size);
 
@@ -265,9 +344,17 @@ export class PDFBuilder {
       ctx.Q();
     });
   }
-}
 
-function getFilePathForFontFamily(family: string) {
-  const fontFilePath = path.join(path.sep, 'tmp', `${family}.ttf`);
-  return fontFilePath;
+  private getFilePathForFontFamily(family: string) {
+    const filePath = path.join(path.sep, 'tmp', `${family}.ttf`);
+    return filePath;
+  }
+
+  private getFilePathForImageURL(url: string, extension: string) {
+    const hash = createHash('sha256')
+      .update(url)
+      .digest('hex');
+    const filePath = path.join(path.sep, 'tmp', `${hash}.${extension}`);
+    return filePath;
+  }
 }

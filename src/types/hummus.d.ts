@@ -55,8 +55,19 @@ declare module 'hummus' {
       },
     ) => void;
     getFontForFile: (filename: string) => Font;
+
+    createFormXObjectFromPNG: (image: string | HummusReadStream) => XObject;
+    createFormXObjectFromTIFF: (image: string | HummusReadStream) => XObject;
+    createFormXObjectFromJPG: (image: string | HummusReadStream) => XObject;
+
+    createFormXObjectsFromPDF: (pdf: string | HummusReadStream, mediaBox: number) => XObject;
+
+    getImageDimensions: (...opts: any[]) => any;
+
     end: () => void;
   }
+
+  export interface XObject {}
 
   export interface ParsedPage {
     getMediaBox: () => Dimensions;
@@ -89,13 +100,29 @@ declare module 'hummus' {
     colorspace?: string;
   }
 
+  type Matrix = number[];
+
+  export interface ImageOptions {
+    index?: number;
+    transformation?:
+      | Matrix
+      | {
+          width?: number;
+          height?: number;
+          proportional?: boolean;
+          fit?: string;
+        };
+  }
+
   export interface ContentContext {
-    writeText: (text: string, x: number, y: number, opts: TextOptions) => void;
+    writeText: (text: string, x: number, y: number, opts: TextOptions) => ContentContext;
+    drawImage: (x: number, y: number, image: string | HummusReadStream, opts?: ImageOptions) => ContentContext;
+    doXObject: (xObject: XObject) => ContentContext;
 
-    q(): () => void;
-    Q(): () => void;
+    q: () => ContentContext;
+    Q: () => ContentContext;
 
-    cm(...args: any[]): () => void;
+    cm: (...args: any[]) => ContentContext;
   }
 
   class PDFPageModifier {

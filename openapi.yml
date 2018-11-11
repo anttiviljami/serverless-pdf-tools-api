@@ -132,6 +132,7 @@ components:
                       type: object
                       anyOf:
                         - $ref: '#/components/schemas/TextElement'
+                        - $ref: '#/components/schemas/ImageElement'
                 required:
                   - layers
               output:
@@ -289,3 +290,33 @@ components:
         - font
         - size
         - color
+    ImageElement:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - image
+        url:
+          type: string
+          format: uri
+        page:
+          anyOf:
+            - type: integer
+            - type: string
+              enum:
+                - all
+          example: 0
+        x:
+          type: number
+        y: 
+          type: number
+        width:
+          type: number
+        height: 
+          type: number
+      required:
+        - url
+        - page
+        - x
+        - y
