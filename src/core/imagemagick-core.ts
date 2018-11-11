@@ -3,12 +3,13 @@ import * as perf from '../util/perf';
 
 export interface PDFToImageStreamOpts {
   type?: 'cover' | 'montage';
-  montagePages?: number[];
   colorspace?: string;
   density?: number;
   alpha?: string;
   quality?: number;
   resize?: number;
+  montagePages?: number[];
+  montageColumns?: number;
 }
 
 export function pdfToImageStream(opts?: PDFToImageStreamOpts) {
@@ -18,6 +19,7 @@ export function pdfToImageStream(opts?: PDFToImageStreamOpts) {
     density: 140,
     alpha: 'remove',
     quality: 90,
+    montageColumns: 1,
     ...opts,
   };
 
@@ -47,11 +49,11 @@ export function pdfToImageStream(opts?: PDFToImageStreamOpts) {
     convert.set('quality', imageMagickOpts.quality);
   }
   if (type === 'montage') {
-    convert.set('mode', 'Concatenate').set('tile', '2x');
+    convert.set('mode', 'Concatenate');
+    convert.set('tile', `${imageMagickOpts.montageColumns}x`);
   }
 
   const inputPages = opts.montagePages ? opts.montagePages.join(',') : '0';
-
   convert.input = `-[${inputPages}]`;
   convert.output = 'png:-';
 
