@@ -28,17 +28,23 @@ export async function handler(event: Lambda.APIGatewayProxyEvent, context: Lambd
   console.info(event);
   const timer = `request-${new Date().getTime()}`;
   perf.time(timer, `Began handling request ${event.httpMethod} ${event.path}`); // start timer
-  const res = await api.handleRequest(
-    {
-      method: event.httpMethod,
-      path: event.path,
-      query: event.queryStringParameters,
-      body: event.body,
-      headers: event.headers,
-    },
-    event,
-    context,
-  );
-  perf.timeEnd(timer, `Finished handling request ${event.httpMethod} ${event.path}`); // start timer
-  return res;
+  try {
+    const res = await api.handleRequest(
+      {
+        method: event.httpMethod,
+        path: event.path,
+        query: event.queryStringParameters,
+        body: event.body,
+        headers: event.headers,
+      },
+      event,
+      context,
+    );
+    perf.timeEnd(timer, `Finished handling request ${event.httpMethod} ${event.path}`); // start timer
+    return res;
+  } catch (err) {
+    console.error(err);
+    perf.timeEnd(timer, `Finished handling request ${event.httpMethod} ${event.path}`); // start timer
+    return replyJSON({ err: 'Unknown error' }, { statusCode: 500 });
+  }
 }

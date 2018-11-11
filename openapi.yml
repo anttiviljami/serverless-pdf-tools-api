@@ -126,52 +126,12 @@ components:
                       required: 
                       - family
                       - url
-                  fields:
+                  elements:
                     type: array
                     items:
                       type: object
-                      properties:
-                        page:
-                          anyOf:
-                            - type: integer
-                            - type: string
-                              enum:
-                                - all
-                          example: 0
-                        x:
-                          type: number
-                        y: 
-                          type: number
-                        text:
-                          type: string
-                        font:
-                          type: string
-                          example: arial
-                        size:
-                          type: number
-                          example: 12
-                        color:
-                          type: string
-                          example: 0,0,0,100
-                        lineHeight:
-                          type: number
-                          example: 1
-                        align: 
-                          type: string
-                          enum:
-                            - left
-                            - center
-                            - right
-                        rotation:
-                          type: number
-                      required:
-                        - page
-                        - x
-                        - y
-                        - text
-                        - font
-                        - size
-                        - color
+                      anyOf:
+                        - $ref: '#/components/schemas/TextElement'
                 required:
                   - layers
               output:
@@ -277,3 +237,55 @@ components:
           enum:
             - screen
             - print
+    TextElement:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - text
+        page:
+          anyOf:
+            - type: integer
+            - type: string
+              enum:
+                - all
+          example: 0
+        x:
+          type: number
+        y: 
+          type: number
+        width:
+          type: number
+        height: 
+          type: number
+        text:
+          type: string
+        font:
+          type: string
+          example: arial
+        size:
+          type: number
+          example: 12
+        color:
+          type: string
+          example: 0,0,0,100
+        lineHeight:
+          type: number
+          example: 1
+        align: 
+          type: string
+          enum:
+            - left
+            - center
+            - right
+        rotation:
+          type: number
+      required:
+        - page
+        - x
+        - y
+        - text
+        - font
+        - size
+        - color

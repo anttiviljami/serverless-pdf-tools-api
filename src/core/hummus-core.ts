@@ -26,23 +26,32 @@ enum TextAlign {
   Right = 'right',
 }
 
-interface Field {
+interface BaseElement {
+  type: string;
   page: string | number;
   x: number;
   y: number;
+  width?: number;
+  height?: number;
+  rotation?: number;
+}
+
+interface TextElement extends BaseElement {
+  type: 'text';
   text: string;
   font: string;
   size: number;
   color: string;
   lineHeight?: number;
   align?: TextAlign;
-  rotation?: number;
 }
+
+type Element = TextElement;
 
 export interface ComposePDFRecipe {
   layers: URLReference[];
   fonts?: FontReference[];
-  fields?: Field[];
+  elements?: Element[];
 }
 
 export enum BuilderOutputMode {
@@ -69,8 +78,16 @@ export class PDFBuilder {
     this.outputStream = this.writeStream.output;
   }
 
+  public getReadableStream() {
+    return this.outputStream;
+  }
+
+  public getBuffer() {
+    return Buffer.concat(this.outputData);
+  }
+
   public async composePDF(recipe: ComposePDFRecipe): Promise<void | Buffer> {
-    const { fonts, layers, fields } = recipe;
+    const { fonts, layers, elements } = recipe;
     const timer = `composePdf-${new Date().getTime()}`;
     perf.time(timer, `Started composing pdf from recipe and ${layers.length} layers`); // start timer
 
@@ -137,23 +154,13 @@ export class PDFBuilder {
       // create a content context for page
       const ctx = writer.startPageContentContext(page);
 
-      // write fields for page
-      const pageFields = _.filter(fields || [], (field) => Number(field.page) === pagenum || field.page === 'all');
-      perf.timeLog(timer, `Writing ${pageFields.length} text fields on page ${pagenum}...`);
-      pageFields.forEach((field) => {
-        // rotation
-        const rad = 0;
-
-        // draw text
-        ctx.q();
-        ctx.cm(Math.cos(rad), Math.sin(rad), -Math.sin(rad), Math.cos(rad), field.x, field.y);
-        ctx.writeText(field.text, 0, 0, {
-          font: writer.getFontForFile(getFilePathForFontFamily(field.font)),
-          size: field.size,
-          color: cmykStringToHex(field.color),
-          colorspace: 'cmyk',
-        });
-        ctx.Q();
+      // draw elements on page
+      const pageElements = _.filter(elements || [], (el) => Number(el.page) === pagenum || el.page === 'all');
+      perf.timeLog(timer, `Drawing ${pageElements.length} elements on page ${pagenum}...`);
+      pageElements.forEach((el) => {
+        if (el.type === 'text') {
+          return this.drawText(el, writer, ctx);
+        }
       });
 
       // write the page to output
@@ -172,12 +179,91 @@ export class PDFBuilder {
     }
   }
 
-  public getReadableStream() {
-    return this.outputStream;
-  }
+  private drawText(el: TextElement, writer: hummus.HummusWriter, ctx: hummus.ContentContext) {
+    const font = writer.getFontForFile(getFilePathForFontFamily(el.font));
+    const lineHeight = el.lineHeight || 1;
 
-  public getBuffer() {
-    return Buffer.concat(this.outputData);
+    // wrap lines
+    const lines: string[] = [];
+    el.text.split('\n').map((line, linenum) => {
+      // calculate line dimensions
+      const lineDimensions = font.calculateTextDimensions(line, el.size);
+      if (el.width && lineDimensions.width > el.width) {
+        // this line is too long, need to word-wrap it
+        const words = line.split(' ');
+
+        let lineWords: string[] = [];
+        let lineLength = 0;
+        for (const word of words) {
+          // calculate word dimensions
+          const wordDimensions = font.calculateTextDimensions(word, el.size);
+          lineLength += wordDimensions.width;
+          if (lineLength > el.width) {
+            // new line
+            if (lineWords.length > 1) {
+              // new line from current line
+              lines.push(lineWords.join(' '));
+
+              // push wrapping word to next line
+              lineWords = [word];
+              lineLength = wordDimensions.width;
+            } else {
+              // this word is longer than the entire line
+              // just push it as its own line
+              lines.push(word);
+              // reset line
+              lineLength = 0;
+              lineWords = [];
+            }
+          } else {
+            // push word to current line
+            lineWords.push(word);
+          }
+        }
+        // push any remaining words to its own line
+        lines.push(lineWords.join(' '));
+      } else {
+        // this line fits
+        lines.push(line);
+      }
+    });
+
+    lines.map((line, linenum) => {
+      // convert rotation to radians
+      const rad = (-el.rotation * Math.PI) / 180;
+
+      // Calculate line dimensions.
+      const lineDimensions = font.calculateTextDimensions(line, el.size);
+
+      // align
+      const anchor = {
+        left: 0,
+        center: lineDimensions.width / 2,
+        right: lineDimensions.width,
+        _default: 0,
+      };
+
+      // calculate position based on rotation and alignment
+      const xOrigin = el.x;
+      const yOrigin = el.y;
+
+      const verticalOffset = linenum * lineHeight * el.size; // line offset
+      const horizontalOffset = _.get(anchor, el.align, anchor._default); // align offset
+
+      const x = xOrigin + Math.sin(rad) * verticalOffset - Math.cos(rad) * horizontalOffset;
+      const y = yOrigin - Math.cos(rad) * verticalOffset - Math.sin(rad) * horizontalOffset;
+
+      // draw each line
+      ctx.q();
+      ctx.cm(Math.cos(rad), Math.sin(rad), -Math.sin(rad), Math.cos(rad), x, y);
+      ctx.writeText(line, 0, 0, {
+        font,
+        size: el.size,
+        color: cmykStringToHex(el.color),
+        colorspace: 'cmyk',
+      });
+      ctx.Q();
+    });
   }
 }
 

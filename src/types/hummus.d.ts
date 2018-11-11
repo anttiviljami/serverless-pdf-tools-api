@@ -70,7 +70,17 @@ declare module 'hummus' {
     mediaBox: Dimensions;
   }
 
-  export interface Font {}
+  export interface Font {
+    calculateTextDimensions: (
+      text: string,
+      size: number,
+    ) => {
+      width: number;
+      height: number;
+      xMax: number;
+      yMax: number;
+    };
+  }
 
   export interface TextOptions {
     font: Font;
