@@ -238,6 +238,9 @@ export class PDFBuilder {
       const pageElements = _.filter(elements || [], (el) => Number(el.page) === pagenum || el.page === 'all');
       perf.timeLog(timer, `Drawing ${pageElements.length} elements on page ${pagenum}...`);
       pageElements.forEach((el) => {
+        // pause the context before drawing
+        writer.pausePageContentContext(ctx);
+
         if (el.type === 'text') {
           return this.drawText(el as TextElement, writer, ctx);
         }

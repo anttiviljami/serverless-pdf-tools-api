@@ -54,6 +54,7 @@ declare module 'hummus' {
     createPage: (...dimensions: Dimensions) => PDFPage;
     writePage: (page: PDFPage) => void;
     startPageContentContext(page: PDFPage): ContentContext;
+    pausePageContentContext(context: ContentContext): void;
     getModifiedFileParser(): HummusReader;
     appendPDFPagesFromPDF: (
       stream: HummusReadStream,

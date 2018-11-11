@@ -48,6 +48,18 @@ const recipe = {
       rotation: 45,
     },
     {
+      type: 'html',
+      html: "<h1 style='color:red;background:white'>THIS IS A HTML ELEMENT</h1>",
+      page: 0,
+      x: 50,
+      y: 100,
+      width: 200,
+      height: 200,
+      pageWidth: '155mm',
+      pageHeight: '30mm',
+      rotation: 0,
+    },
+    {
       type: 'text',
       page: 0,
       x: 200,

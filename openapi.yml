@@ -299,6 +299,7 @@ components:
         url:
           type: string
           format: uri
+          example: https://public.keskofiles.com/f/k-ruoka/product/4009301043187?w=500?fm=png
         page:
           anyOf:
             - type: integer
@@ -313,6 +314,8 @@ components:
         width:
           type: number
         height: 
+          type: number
+        rotation:
           type: number
       required:
         - url
