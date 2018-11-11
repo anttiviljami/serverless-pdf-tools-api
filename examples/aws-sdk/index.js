@@ -18,6 +18,9 @@ const recipe = {
     {
       url: 'https://s3-eu-west-1.amazonaws.com/serverless-pdf-tools-api-dev/examples/KM_parhaat_pohja.pdf',
     },
+    {
+      url: 'https://s3-eu-west-1.amazonaws.com/serverless-pdf-tools-api-dev/examples/KM_parhaat_tuote-etu_fasupala.pdf',
+    },
   ],
   fonts: [
     {
@@ -25,18 +28,20 @@ const recipe = {
       url: 'https://s3-eu-west-1.amazonaws.com/serverless-pdf-tools-api-dev/fonts/arial.ttf',
     },
   ],
-  fields: [
+  elements: [
     {
+      type: 'text',
       page: 0,
-      x: 266,
-      y: 655,
-      text: 'string',
+      x: 200,
+      y: 650,
+      width: 150,
+      text: 'First line\nSecond line\nThis is a really long line that should be automatically cut',
       font: 'arial',
       size: 12,
       color: '0,0,0,100',
-      lineHeight: 1,
-      align: 'left',
-      rotation: 0,
+      lineHeight: 1.6,
+      align: 'center',
+      rotation: 20,
     },
   ],
 };
