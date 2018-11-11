@@ -25,6 +25,10 @@ paths:
         200:
           description: ok
           content: 
+            image/png: 
+              schema:
+                type: string
+                format: binary
             application/pdf: 
               schema:
                 type: string
@@ -43,7 +47,7 @@ paths:
         200:
           description: ok
           content: 
-            image/png: 
+            image/png:
               schema:
                 type: string
                 format: binary
