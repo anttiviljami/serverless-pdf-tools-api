@@ -70,8 +70,8 @@ export class PDFBuilder {
   }
 
   public async composePDF(recipe: ComposePDFRecipe): Promise<void | Buffer> {
-    const timer = `composePdf-${new Date().getTime()}`;
     const { fonts, layers, fields } = recipe;
+    const timer = `composePdf-${new Date().getTime()}`;
     perf.time(timer, `Started composing pdf from recipe and ${layers.length} layers`); // start timer
 
     // start up a pdf writer to a write stream

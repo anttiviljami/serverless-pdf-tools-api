@@ -5,6 +5,7 @@ import * as Lambda from 'aws-lambda';
 import { replyJSON } from './util/lambda-util';
 import { composePdfHttpHandler } from './http/pdf-http';
 import { composeHtmlHttpHandler } from './http/html-http';
+import * as perf from './util/perf';
 
 // define api + handlers
 const api = new OpenAPIBackend({
@@ -25,7 +26,9 @@ api.init();
 
 export async function handler(event: Lambda.APIGatewayProxyEvent, context: Lambda.Context) {
   console.info(event);
-  return api.handleRequest(
+  const timer = `request-${new Date().getTime()}`;
+  perf.time(timer, `Began handling request ${event.httpMethod} ${event.path}`); // start timer
+  const res = await api.handleRequest(
     {
       method: event.httpMethod,
       path: event.path,
@@ -36,4 +39,6 @@ export async function handler(event: Lambda.APIGatewayProxyEvent, context: Lambd
     event,
     context,
   );
+  perf.timeEnd(timer, `Finished handling request ${event.httpMethod} ${event.path}`); // start timer
+  return res;
 }

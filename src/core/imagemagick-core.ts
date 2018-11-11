@@ -23,9 +23,6 @@ export function pdfToImageStream(opts?: PDFToImageStreamOpts) {
 
   const { type } = imageMagickOpts;
 
-  const timer = `pdfToImage-${new Date().getTime()}`;
-  perf.time(timer, `Started pdf -> ${type} image converter with opts ${JSON.stringify(imageMagickOpts)}`);
-
   // choose suitable executable based on image type
   let executable = 'convert';
   if (type === 'montage') {
@@ -54,8 +51,16 @@ export function pdfToImageStream(opts?: PDFToImageStreamOpts) {
   }
 
   const inputPages = opts.montagePages ? opts.montagePages.join(',') : '0';
+
   convert.input = `-[${inputPages}]`;
   convert.output = 'png:-';
+
+  const timer = `pdfToImage-${new Date().getTime()}`;
+  convert.on('data', function startListener() {
+    perf.time(timer, `Started converting pdf to ${type}`);
+    convert.removeListener('data', startListener);
+  });
   convert.on('end', () => perf.timeEnd(timer, `Finished converting to ${type}`));
+
   return convert;
 }
